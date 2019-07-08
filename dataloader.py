@@ -25,7 +25,7 @@ from pdb import set_trace as breakpoint
 
 
 # Set the appropriate paths of the datasets here.
-_MINI_IMAGENET_DATASET_DIR = './datasets/MiniImagenet'
+_MINI_IMAGENET_DATASET_DIR = '/home/SERILOCAL/j.perez-rua/Data/MiniImageNet'
 _IMAGENET_DATASET_DIR = './datasets/IMAGENET/ILSVRC2012'
 
 _IMAGENET_LOWSHOT_BENCHMARK_CATEGORY_SPLITS_PATH = './data/IMAGENET_LOWSHOT_BENCHMARK_CATEGORY_SPLITS.json'
@@ -87,7 +87,7 @@ def buildLabelIndex(labels):
 
 def load_data(file):
     with open(file, 'rb') as fo:
-        data = pickle.load(fo)
+        data = pickle.load(fo, encoding='latin1')
     return data
 
 
@@ -375,7 +375,7 @@ class FewShotDataloader():
         Tnovel = []
         Exemplars = []
         assert((nTestNovel % nKnovel) == 0)
-        nEvalExamplesPerClass = nTestNovel / nKnovel
+        nEvalExamplesPerClass = nTestNovel // nKnovel
 
         for Knovel_idx in range(len(Knovel)):
             imd_ids = self.sampleImageIdsFrom(
@@ -464,7 +464,7 @@ class FewShotDataloader():
         return self.get_iterator(epoch)
 
     def __len__(self):
-        return (self.epoch_size / self.batch_size)
+        return self.epoch_size // self.batch_size
 
 
 class ImageNetLowShot(data.Dataset):
@@ -594,7 +594,7 @@ class SimpleDataloader():
         return self.get_iterator()
 
     def __len__(self):
-        return (self.epoch_size / self.batch_size)
+        return self.epoch_size // self.batch_size
 
 
 class ImageNetLowShotFeaturesLegacy():

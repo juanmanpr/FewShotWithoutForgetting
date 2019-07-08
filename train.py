@@ -71,7 +71,6 @@ data_test_opt = config['data_test_opt']
 train_split, test_split = 'train', 'val'
 dataset_train = MiniImageNet(phase=train_split)
 dataset_test = MiniImageNet(phase=test_split)
-
 dloader_train = FewShotDataloader(
     dataset=dataset_train,
     nKnovel=data_train_opt['nKnovel'],

@@ -30,7 +30,7 @@ class Algorithm():
         self.allocate_tensors()
         self.curr_epoch = 0
         self.optimizers = {}
-
+        
         self.keep_best_model_metric_name = (
             opt['best_metric'] if ('best_metric' in opt) else None)
 
@@ -271,7 +271,7 @@ class Algorithm():
         eval_stats  = {}
         train_stats = {}
         self.init_record_of_best_model()
-        for self.curr_epoch in xrange(start_epoch, self.max_num_epochs):
+        for self.curr_epoch in range(start_epoch, self.max_num_epochs):
             self.logger.info('Training epoch [%3d / %3d]' %
                              (self.curr_epoch + 1, self.max_num_epochs))
             self.adjust_learning_rates(self.curr_epoch)
@@ -355,6 +355,7 @@ class Algorithm():
     def keep_record_of_best_model(self, eval_stats, current_epoch):
         if self.keep_best_model_metric_name is not None:
             metric_name = self.keep_best_model_metric_name
+            print(metric_name, eval_stats)
             if (metric_name not in eval_stats):
                 raise ValueError('The provided metric {0} for keeping the best '
                                  'model is not computed by the evaluation routine.'

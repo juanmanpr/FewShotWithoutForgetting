@@ -12,6 +12,7 @@ from tqdm import tqdm
 
 from . import Algorithm
 
+from . import ortho_reg
 
 def top1accuracy(output, target):
     _, pred = output.max(dim=1)
@@ -52,7 +53,10 @@ class FewShot(Algorithm):
             train_test_stage = 'fewshot'
             assert(len(batch) == 6)
             images_train, labels_train, images_test, labels_test, K, nKbase = batch
-            self.nKbase = nKbase.squeeze()[0]
+            if nKbase.size() == torch.Size([]) or nKbase.size(0) == 1:
+                self.nKbase = nKbase.squeeze().item()
+            else:
+                self.nKbase = nKbase.squeeze()[0]
             self.tensors['images_train'].resize_(images_train.size()).copy_(images_train)
             self.tensors['labels_train'].resize_(labels_train.size()).copy_(labels_train)
             labels_train = self.tensors['labels_train']
@@ -70,7 +74,10 @@ class FewShot(Algorithm):
             train_test_stage = 'base_classification'
             assert(len(batch) == 4)
             images_test, labels_test, K, nKbase = batch
-            self.nKbase = nKbase.squeeze()[0]
+            if nKbase.size() == torch.Size([]) or nKbase.size(0) == 1:
+                self.nKbase = nKbase.squeeze().item()
+            else:
+                self.nKbase = nKbase.squeeze()[0]
             self.tensors['images_test'].resize_(images_test.size()).copy_(images_test)
             self.tensors['labels_test'].resize_(labels_test.size()).copy_(labels_test)
             self.tensors['Kids'].resize_(K.size()).copy_(K)
@@ -137,9 +144,14 @@ class FewShot(Algorithm):
         #************************** COMPUTE LOSSES *****************************
         loss_cls_all = criterion(cls_scores_var, labels_test_var)
         loss_total = loss_cls_all
-        loss_record['loss'] = loss_total.data[0]
+        
+        if 'reg' in self.opt['networks']['classifier']['optim_params']:
+            weight_matrix = classifier.weight_base.data
+            loss_total += self.opt['networks']['classifier']['optim_params']['ortho_lambda']*ortho_reg.l2_reg_ortho(weight_matrix, 'cuda')
+        
+        loss_record['loss'] = loss_total.data.item()
         loss_record['AccuracyBase'] = top1accuracy(
-            cls_scores_var.data, labels_test_var.data)
+            cls_scores_var.data, labels_test_var.data).item()
         #***********************************************************************
 
         #***********************************************************************
@@ -236,11 +248,11 @@ class FewShot(Algorithm):
         #************************* COMPUTE LOSSES ******************************
         loss_cls_all = criterion(cls_scores_var, labels_test_var)
         loss_total = loss_cls_all
-        loss_record['loss'] = loss_total.data[0]
+        loss_record['loss'] = loss_total.data.item()
 
         if self.nKbase > 0:
             loss_record['AccuracyBoth'] = top1accuracy(
-                cls_scores_var.data, labels_test_var.data)
+                cls_scores_var.data, labels_test_var.data).item()
 
             preds_data = cls_scores_var.data.cpu()
             labels_test_data = labels_test_var.data.cpu()
@@ -250,12 +262,12 @@ class FewShot(Algorithm):
             preds_novel = preds_data[novel_ids,:]
 
             loss_record['AccuracyBase'] = top1accuracy(
-                preds_base[:,:nKbase], labels_test_data[base_ids])
+                preds_base[:,:nKbase], labels_test_data[base_ids]).item()
             loss_record['AccuracyNovel'] = top1accuracy(
-                preds_novel[:,nKbase:], (labels_test_data[novel_ids]-nKbase))
+                preds_novel[:,nKbase:], (labels_test_data[novel_ids]-nKbase)).item()
         else:
             loss_record['AccuracyNovel'] = top1accuracy(
-                cls_scores_var.data, labels_test_var.data)
+                cls_scores_var.data, labels_test_var.data).item()
         #***********************************************************************
         
         #***********************************************************************
