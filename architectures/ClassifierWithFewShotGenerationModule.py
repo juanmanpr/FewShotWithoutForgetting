@@ -225,6 +225,7 @@ class Classifier(nn.Module):
             )
             weight_novel = weight_novel_avg + weight_novel_att
             weight_novel = weight_novel.view(batch_size, nKnovel, num_channels)
+            self.weight_novel = weight_novel
         else:
             raise ValueError('Not supported / recognized type {0}'.format(
                 self.weight_generator_type))

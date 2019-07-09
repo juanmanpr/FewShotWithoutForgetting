@@ -20,8 +20,21 @@ def top1accuracy(output, target):
     target = target.view(-1)
     accuracy = 100 * pred.eq(target).float().mean()
     return accuracy
+            
+def avgperclass_top1accuracy(output, target):
 
-
+    num_classes = output.size(1)
+    all_acc = 0
+    for c in range(num_classes):
+        c_ids = torch.nonzero(target == c).view(-1)
+        #print(torch.nonzero(target == c))
+        #print(c_ids, c_ids.size(), output[c_ids,:].size(), target[c_ids].size())
+        if c_ids.size(0) > 0:
+            c_acc = top1accuracy(output[c_ids,:], target[c_ids])
+            all_acc += c_acc
+    all_acc /= float(num_classes)
+    return all_acc
+    
 def activate_dropout_units(model):
     for m in model.modules():
         if isinstance(m, nn.Dropout):
@@ -120,7 +133,8 @@ class FewShot(Algorithm):
 
         #***********************************************************************
         #*********************** SET TORCH VARIABLES ***************************
-        images_test_var = Variable(images_test, volatile=(not do_train))
+        images_test_var = images_test
+        if not do_train: images_test_var = images_test.detach()
         labels_test_var = Variable(labels_test, requires_grad=False)
         Kbase_var = (None if (nKbase==0) else Variable(
             Kids[:,:nKbase].contiguous(),requires_grad=False))
@@ -148,6 +162,7 @@ class FewShot(Algorithm):
         if 'reg' in self.opt['networks']['classifier']['optim_params']:
             weight_matrix = classifier.weight_base.data
             loss_total += self.opt['networks']['classifier']['optim_params']['ortho_lambda']*ortho_reg.l2_reg_ortho(weight_matrix, 'cuda')
+            #print(self.opt['networks']['classifier']['optim_params']['ortho_lambda']*ortho_reg.l2_reg_ortho(weight_matrix, 'cuda').item())
         
         loss_record['loss'] = loss_total.data.item()
         loss_record['AccuracyBase'] = top1accuracy(
@@ -194,12 +209,14 @@ class FewShot(Algorithm):
         #***********************************************************************
         #*********************** SET TORCH VARIABLES ***************************
         is_volatile = (not do_train or not do_train_feat_model)
-        images_test_var = Variable(images_test, volatile=is_volatile)
-        labels_test_var = Variable(labels_test, requires_grad=False)
+        images_test_var = images_test
+        if is_volatile: images_test_var = images_test.detach()
+        labels_test_var = labels_test
         Kbase_var = (None if (nKbase==0) else
             Variable(Kids[:,:nKbase].contiguous(),requires_grad=False))
         labels_train_1hot_var = Variable(labels_train_1hot, requires_grad=False)
-        images_train_var = Variable(images_train, volatile=is_volatile)
+        images_train_var = images_train
+        if is_volatile: images_train_var = images_train.detach()
         #***********************************************************************
 
         loss_record = {}
@@ -224,8 +241,8 @@ class FewShot(Algorithm):
         if (not do_train_feat_model) and do_train:
             # Make sure that no gradients are backproagated to the feature
             # extractor when the feature extraction model is freezed.
-            features_train_var = Variable(features_train_var.data, volatile=False)
-            features_test_var = Variable(features_test_var.data, volatile=False)
+            features_train_var = features_train_var.data.detach()
+            features_test_var = features_test_var.data.detach()
         #***********************************************************************
 
         #************************ APPLY CLASSIFIER *****************************
@@ -248,6 +265,14 @@ class FewShot(Algorithm):
         #************************* COMPUTE LOSSES ******************************
         loss_cls_all = criterion(cls_scores_var, labels_test_var)
         loss_total = loss_cls_all
+        
+        if 'reg' in self.opt['networks']['classifier']['optim_params']:
+            #print(classifier.weight_base.data.size())
+            #print(classifier.weight_novel.data.size())
+            weight_matrix = torch.cat((classifier.weight_base.data, classifier.weight_novel.data[0]), dim=0)
+            loss_total += self.opt['networks']['classifier']['optim_params']['ortho_lambda']*ortho_reg.l2_reg_ortho(weight_matrix, 'cuda')
+            #print(self.opt['networks']['classifier']['optim_params']['ortho_lambda']*ortho_reg.l2_reg_ortho(weight_matrix, 'cuda').item())        
+        
         loss_record['loss'] = loss_total.data.item()
 
         if self.nKbase > 0:
@@ -261,10 +286,31 @@ class FewShot(Algorithm):
             preds_base = preds_data[base_ids,:]
             preds_novel = preds_data[novel_ids,:]
 
+            #print('***********')
+            #print(cls_scores_var.data.size())
+            #print(preds_base[:,:nKbase].size())
+            #print(preds_novel[:,nKbase:].size())
+            #print(preds_novel[:,nKbase:].size())  
+
+            #print(preds_base[:,:nKbase].size())
+            #print(labels_test_data[base_ids].size())
+
             loss_record['AccuracyBase'] = top1accuracy(
                 preds_base[:,:nKbase], labels_test_data[base_ids]).item()
             loss_record['AccuracyNovel'] = top1accuracy(
                 preds_novel[:,nKbase:], (labels_test_data[novel_ids]-nKbase)).item()
+                
+            #print('pc base')
+            loss_record['AccuracyPCBase']  = top1accuracy(
+                preds_base[:,:], labels_test_data[base_ids]).item()
+            #print('pc novel')
+            loss_record['AccuracyPCNovel'] = top1accuracy(
+                preds_novel[:,:], labels_test_data[novel_ids]).item()            
+                
+            loss_record['AccuracyHMean'] = (
+                2*loss_record['AccuracyPCBase']*loss_record['AccuracyPCNovel'])/(
+                  loss_record['AccuracyPCBase']+loss_record['AccuracyPCNovel'])
+                                  
         else:
             loss_record['AccuracyNovel'] = top1accuracy(
                 cls_scores_var.data, labels_test_var.data).item()

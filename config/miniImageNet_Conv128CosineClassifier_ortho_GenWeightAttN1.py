@@ -18,8 +18,8 @@ data_test_opt = {}
 data_test_opt['nKnovel'] = nKnovel
 data_test_opt['nKbase'] = nKbase
 data_test_opt['nExemplars'] = nExemplars
-data_test_opt['nTestNovel'] = 15 * data_test_opt['nKnovel']
-data_test_opt['nTestBase'] = 15 * data_test_opt['nKnovel']
+data_test_opt['nTestNovel'] = 25 * data_test_opt['nKnovel']
+data_test_opt['nTestBase'] = 25 * data_test_opt['nKnovel']
 data_test_opt['batch_size'] = 1
 data_test_opt['epoch_size'] = 2000
 
