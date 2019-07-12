@@ -225,7 +225,7 @@ class Classifier(nn.Module):
             )
             weight_novel = weight_novel_avg + weight_novel_att
             weight_novel = weight_novel.view(batch_size, nKnovel, num_channels)
-            self.weight_novel = weight_novel
+            weight_novel = weight_novel
         else:
             raise ValueError('Not supported / recognized type {0}'.format(
                 self.weight_generator_type))
@@ -322,10 +322,10 @@ class Classifier(nn.Module):
                 the base categories are returned. In that case the shape of
                 cls_scores is [batch_size x num_test_examples x nKbase].
         """
-        cls_weights = self.get_classification_weights(
+        self.cls_weights = self.get_classification_weights(
             Kbase_ids, features_train, labels_train)
         cls_scores = self.apply_classification_weights(
-            features_test, cls_weights)
+            features_test, self.cls_weights)
         return cls_scores
 
 

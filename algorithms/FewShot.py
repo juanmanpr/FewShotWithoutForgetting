@@ -47,8 +47,9 @@ class FewShot(Algorithm):
         self.nKbase = torch.LongTensor()
         self.activate_dropout = (
             opt['activate_dropout'] if ('activate_dropout' in opt) else False)
-        self.keep_best_model_metric_name = 'AccuracyNovel'
-
+        #self.keep_best_model_metric_name = 'AccuracyNovel'
+        self.keep_best_model_metric_name = 'AccuracyHMean'
+        
     def allocate_tensors(self):
         self.tensors = {}
         self.tensors['images_train'] = torch.FloatTensor()
@@ -269,7 +270,10 @@ class FewShot(Algorithm):
         if 'reg' in self.opt['networks']['classifier']['optim_params']:
             #print(classifier.weight_base.data.size())
             #print(classifier.weight_novel.data.size())
-            weight_matrix = torch.cat((classifier.weight_base.data, classifier.weight_novel.data[0]), dim=0)
+            if self.opt['networks']['classifier']['optim_params']['reg'] == 'both':
+                weight_matrix = classifier.cls_weights.data
+            else:
+                weight_matrix = classifier.weight_base.data
             loss_total += self.opt['networks']['classifier']['optim_params']['ortho_lambda']*ortho_reg.l2_reg_ortho(weight_matrix, 'cuda')
             #print(self.opt['networks']['classifier']['optim_params']['ortho_lambda']*ortho_reg.l2_reg_ortho(weight_matrix, 'cuda').item())        
         
