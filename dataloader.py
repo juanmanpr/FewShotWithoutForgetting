@@ -717,10 +717,12 @@ class BalancedFewShotDataloader():
         nTestNovel = self.nTestNovel
         nTestBase = self.nTestBase
         nExemplars = self.nExemplars
+        
 
         Kbase, Knovel = self.sample_base_and_novel_categories(nKbase, nKnovel)
-        Tbase = self.sample_test_examples_for_base_categories(Kbase, nTestBase)
-        Tnovel, Exemplars = self.sample_train_and_test_examples_for_novel_categories(
+        Tbase, BaseExemplars = self.sample_train_and_test_examples_for_base_categories(
+            Kbase, nTestBase, nExemplars)
+        Tnovel, NovelExemplars = self.sample_train_and_test_examples_for_novel_categories(
             Knovel, nTestNovel, nExemplars, nKbase)
 
         # concatenate the base and novel category examples.
@@ -728,7 +730,7 @@ class BalancedFewShotDataloader():
         random.shuffle(Test)
         Kall = Kbase + Knovel
 
-        return Exemplars, Test, Kall, nKbase
+        return BaseExemplars, NovelExemplars, Test, Kall, nKbase
 
     def createExamplesTensorData(self, examples):
         """
@@ -759,12 +761,13 @@ class BalancedFewShotDataloader():
         random.seed(rand_seed)
         np.random.seed(rand_seed)
         def load_function(iter_idx):
-            Exemplars, Test, Kall, nKbase = self.sample_episode()
+            BaseExemplars, NovelExemplars, Test, Kall, nKbase = self.sample_episode()
             Xt, Yt = self.createExamplesTensorData(Test)
             Kall = torch.LongTensor(Kall)
-            if len(Exemplars) > 0:
-                Xe, Ye = self.createExamplesTensorData(Exemplars)
-                return Xe, Ye, Xt, Yt, Kall, nKbase
+            if len(BaseExemplars) > 0 and len(NovelExemplars):
+                Xbe, Ybe = self.createExamplesTensorData(BaseExemplars)
+                Xne, Yne = self.createExamplesTensorData(NovelExemplars)                
+                return Xbe, Ybe, Xne, Yne, Xt, Yt, Kall, nKbase
             else:
                 return Xt, Yt, Kall, nKbase
 
