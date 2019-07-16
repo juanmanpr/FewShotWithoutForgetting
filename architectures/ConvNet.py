@@ -27,6 +27,10 @@ class ConvNet(nn.Module):
         self.in_planes  = opt['in_planes']
         self.out_planes = opt['out_planes']
         self.num_stages = opt['num_stages']
+        if 'pool' in opt.keys():
+            self.pool = opt['pool']
+        else:
+            self.pool = None
         if type(self.out_planes) == int:
             self.out_planes = [self.out_planes for i in range(self.num_stages)]
         assert(type(self.out_planes)==list and len(self.out_planes)==self.num_stages)
@@ -39,6 +43,7 @@ class ConvNet(nn.Module):
             if i == (self.num_stages-1):
                 conv_blocks.append(
                     ConvBlock(num_planes[i], num_planes[i+1], userelu=userelu))
+
             else:
                 conv_blocks.append(
                     ConvBlock(num_planes[i], num_planes[i+1]))
@@ -54,8 +59,13 @@ class ConvNet(nn.Module):
 
     def forward(self, x):
         out = self.conv_blocks(x)
+        if self.pool == 'avgpool':
+            # apply global average pooling
+            out = out.view(out.size(0), out.size(1), -1)
+            out = torch.mean(out, 2)
         out = out.view(out.size(0),-1)
         return out
+
 
 def create_model(opt):
     return ConvNet(opt)
