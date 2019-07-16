@@ -18,8 +18,8 @@ data_test_opt = {}
 data_test_opt['nKnovel'] = nKnovel
 data_test_opt['nKbase'] = nKbase
 data_test_opt['nExemplars'] = nExemplars
-data_test_opt['nTestNovel'] = 25 * data_test_opt['nKnovel']
-data_test_opt['nTestBase'] = 25 * data_test_opt['nKnovel']
+data_test_opt['nTestNovel'] = 15 * data_test_opt['nKnovel']
+data_test_opt['nTestBase'] = 15 * data_test_opt['nKnovel']
 data_test_opt['batch_size'] = 1
 data_test_opt['epoch_size'] = 2000
 
@@ -33,7 +33,7 @@ net_optionsF = {'userelu': False, 'in_planes':3, 'out_planes':[64,64,128,128], '
 pretrainedF = './experiments/miniImageNet_Conv128CosineClassifier_ortho/feat_model_net_epoch*.best'
 networks['feat_model'] = {'def_file': 'architectures/ConvNet.py', 'pretrained': pretrainedF, 'opt': net_optionsF, 'optim_params': None}
 
-net_optim_paramsC = {'optim_type': 'sgd', 'lr': 0.1, 'momentum':0.9, 'weight_decay': 1e-4, 'nesterov': True, 'LUT_lr':[(20, 0.1),(40, 0.006),(50, 0.0012),(60, 0.00024)], 'reg': 'ortho', 'ortho_lambda': 1e-4}
+net_optim_paramsC = {'optim_type': 'sgd', 'lr': 0.1, 'momentum':0.9, 'weight_decay': 5e-4, 'nesterov': True, 'LUT_lr':[(20, 0.1),(40, 0.006),(50, 0.0012),(60, 0.00024)]}
 pretrainedC = './experiments/miniImageNet_Conv128CosineClassifier_ortho/classifier_net_epoch*.best'
 net_optionsC = {'classifier_type': 'cosine', 'weight_generator_type': 'attention_based', 'nKall': nKbase, 'nFeat':128*5*5, 'scale_cls': 10, 'scale_att': 10.0}
 networks['classifier'] = {'def_file': 'architectures/ClassifierWithFewShotGenerationModule.py', 'pretrained': pretrainedC, 'opt': net_optionsC, 'optim_params': net_optim_paramsC}

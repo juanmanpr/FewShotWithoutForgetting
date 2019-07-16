@@ -277,6 +277,7 @@ class FewShot(Algorithm):
             loss_total += self.opt['networks']['classifier']['optim_params']['ortho_lambda']*ortho_reg.l2_reg_ortho(weight_matrix, 'cuda')
             #print(self.opt['networks']['classifier']['optim_params']['ortho_lambda']*ortho_reg.l2_reg_ortho(weight_matrix, 'cuda').item())        
         
+
         loss_record['loss'] = loss_total.data.item()
 
         if self.nKbase > 0:

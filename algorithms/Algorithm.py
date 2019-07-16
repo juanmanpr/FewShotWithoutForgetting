@@ -91,6 +91,8 @@ class Algorithm():
 
         network = imp.load_source('',net_def_file).create_model(net_opt)
         if pretrained_path != None:
+            print(10*'********')
+            print('Loading pretrained weights: ', pretrained_path)
             self.load_pretrained(network, pretrained_path)
 
         return network
