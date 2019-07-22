@@ -190,7 +190,7 @@ class ImageNetLowShotExperiments(FewShot):
         classifier.eval()
         clsWeights = self.tensors['clsWeights']
 
-        both_classes = base_classes + novel_classes
+        both_classes = list(base_classes) + list(novel_classes)
         # Not valid classes are those that do not belong neighter to the base
         # nor the nor the novel classes.
         nKall = self.nKbase + self.nKnovel
@@ -199,8 +199,20 @@ class ImageNetLowShotExperiments(FewShot):
         base_classes_torch = torch.Tensor(base_classes).long().cuda()
         novel_classes_torch = torch.Tensor(novel_classes).long().cuda()
 
-        top1, top1_novel, top1_base, top1_prior = None, None, None, None
-        top5, top5_novel, top5_base, top5_prior = None, None, None, None
+        # check orthogonality
+        W = self.tensors['clsWeights'][0]
+        print(W)
+        print(W.size(), print(nKall))
+        
+        for r1 in W:
+            for r2 in W:
+                d = torch.dot(r1,r2).item()
+                print(d)
+                
+        return 0
+
+        top1, top1_novel, top1_base, top1_prior, top1_hm = None, None, None, None, None
+        top5, top5_novel, top5_base, top5_prior, top5_hm = None, None, None, None, None
         all_labels = None
         for idx, batch in enumerate(tqdm(data_loader(0))):
             images_test, labels_test = batch
@@ -236,8 +248,8 @@ class ImageNetLowShotExperiments(FewShot):
             scores_novel[:, base_classes_torch] = -1000
             top1_this, top5_this = compute_top1_and_top5_accuracy(scores_novel, labels_test)
             top1_novel = top1_this if top1_novel is None else np.concatenate((top1_novel, top1_this))
-            top5_novel = top5_this if top5_novel is None else np.concatenate((top5_novel, top5_this))
-
+            top5_novel = top5_this if top5_novel is None else np.concatenate((top5_novel, top5_this))            
+            
             scores_base = scores.clone()
             scores_base[:, novel_classes_torch] = -1000
             top1_this, top5_this = compute_top1_and_top5_accuracy(scores_base, labels_test)
@@ -261,17 +273,21 @@ class ImageNetLowShotExperiments(FewShot):
         top5_all = 100*np.mean(top5[is_either])
         top5_all_prior = 100*np.mean(top5_prior[is_either])
 
+        # new metrics
+        top1_hm = 2*top1_base*top1_novel/(top1_base+top1_novel)
+        top5_hm = 2*top5_base*top5_novel/(top5_base+top5_novel)
+
         self.logger.info('Experiment {0}'.format(exp_id))
         self.logger.info(
-            '==> Top 5 Accuracies: [Novel: {0:3.2f} | Base: {1:3.2f} | All {2:3.2f} | All prior {3:3.2f}]'
-            .format(top5_novel, top5_base, top5_all, top5_all_prior))
+            '==> Top 5 Accuracies: [Novel: {0:3.2f} | Base: {1:3.2f} | All {2:3.2f} | All prior {3:3.2f} | All HM {4:3.2f}]'
+            .format(top5_novel, top5_base, top5_all, top5_all_prior, top5_hm))
         self.logger.info(
-            '==> Top 1 Accuracies: [Novel: {0:3.2f} | Base: {1:3.2f} | All {2:3.2f} | All prior {3:3.2f}]'
-            .format(top1_novel, top1_base, top1_all, top1_all_prior))
+            '==> Top 1 Accuracies: [Novel: {0:3.2f} | Base: {1:3.2f} | All {2:3.2f} | All prior {3:3.2f} | All HM {4:3.2f}]'
+            .format(top1_novel, top1_base, top1_all, top1_all_prior, top1_hm))
 
         results_array = np.array(
-            [top5_novel, top5_base, top5_all, top5_all_prior,
-             top1_novel, top1_base, top1_all, top1_all_prior]).reshape(1,-1)
+            [top5_novel, top5_base, top5_all, top5_all_prior, top5_hm,
+             top1_novel, top1_base, top1_all, top1_all_prior, top1_hm]).reshape(1,-1)
 
         return results_array
 
@@ -284,10 +300,12 @@ class ImageNetLowShotExperiments(FewShot):
         top5_base = mu_results[1]
         top5_all = mu_results[2]
         top5_all_prior = mu_results[3]
-        top1_novel = mu_results[4]
-        top1_base = mu_results[5]
-        top1_all = mu_results[6]
-        top1_all_prior = mu_results[7]
+        top5_hm = mu_results[4]
+        top1_novel = mu_results[5]
+        top1_base = mu_results[6]
+        top1_all = mu_results[7]
+        top1_all_prior = mu_results[8]
+        top1_hm = mu_results[9]
 
         std_results  = results_all.std(axis=0)
         ci95_results = 1.96*std_results/np.sqrt(results_all.shape[0])
@@ -296,25 +314,30 @@ class ImageNetLowShotExperiments(FewShot):
         top5_base_ci95 = ci95_results[1]
         top5_all_ci95 = ci95_results[2]
         top5_all_prior_ci95 = ci95_results[3]
-        top1_novel_ci95 = ci95_results[4]
-        top1_base_ci95 = ci95_results[5]
-        top1_all_ci95 = ci95_results[6]
-        top1_all_prior_ci95 = ci95_results[7]
+        top5_hm_ci95 = ci95_results[4]
+        top1_novel_ci95 = ci95_results[5]
+        top1_base_ci95 = ci95_results[6]
+        top1_all_ci95 = ci95_results[7]
+        top1_all_prior_ci95 = ci95_results[8]
+        top1_hm_ci95 = ci95_results[9]
 
+        self.logger.info('----------------------------------------------------------------')
+        self.logger.info('----------------------------------------------------------------')
+        self.logger.info('----------------------------------------------------------------')
         self.logger.info('----------------------------------------------------------------')
         self.logger.info('Average results of {0} experiments: {1}'.format(
             num_eval_experiments, exp_id))
         self.logger.info(
-            '==> Top 5 Accuracies:      [Novel: {0:3.2f} | Base: {1:3.2f} | All {2:3.2f} | All prior {3:3.2f}]'
-            .format(top5_novel, top5_base, top5_all, top5_all_prior))
+            '==> Top 5 Accuracies:      [Novel: {0:3.2f} | Base: {1:3.2f} | All {2:3.2f} | All prior {3:3.2f} | All HM {4:3.2f}]'
+            .format(top5_novel, top5_base, top5_all, top5_all_prior, top5_hm))
         self.logger.info(
-            '==> Top 5 conf. intervals: [Novel: {0:5.2f} | Base: {1:5.2f} | All {2:5.2f} | All prior {3:5.2f}]'
-            .format(top5_novel_ci95, top5_base_ci95, top5_all_ci95, top5_all_prior_ci95))
+            '==> Top 5 conf. intervals: [Novel: {0:5.2f} | Base: {1:5.2f} | All {2:5.2f} | All prior {3:5.2f} | All HM {4:3.2f}]'
+            .format(top5_novel_ci95, top5_base_ci95, top5_all_ci95, top5_all_prior_ci95, top5_hm_ci95))
         self.logger.info('----------------------------------------------------------------')
         self.logger.info(
-            '==> Top 1 Accuracies:      [Novel: {0:3.2f} | Base: {1:3.2f} | All {2:3.2f} | All prior {3:3.2f}]'
-            .format(top1_novel, top1_base, top1_all, top1_all_prior))
+            '==> Top 1 Accuracies:      [Novel: {0:3.2f} | Base: {1:3.2f} | All {2:3.2f} | All prior {3:3.2f} | All HM {4:3.2f}]'
+            .format(top1_novel, top1_base, top1_all, top1_all_prior, top1_hm))
         self.logger.info(
-            '==> Top 1 conf. intervals: [Novel: {0:5.2f} | Base: {1:5.2f} | All {2:5.2f} | All prior {3:5.2f}]'
-            .format(top1_novel_ci95, top1_base_ci95, top1_all_ci95, top1_all_prior_ci95))
+            '==> Top 1 conf. intervals: [Novel: {0:5.2f} | Base: {1:5.2f} | All {2:5.2f} | All prior {3:5.2f} | All HM {4:3.2f}]'
+            .format(top1_novel_ci95, top1_base_ci95, top1_all_ci95, top1_all_prior_ci95, top1_hm_ci95))
         self.logger.info('----------------------------------------------------------------')

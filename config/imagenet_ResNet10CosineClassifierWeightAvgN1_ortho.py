@@ -3,7 +3,7 @@ config = {}
 
 nKbase = 389 
 nKnovel = 250
-nExemplars = 2
+nExemplars = 1
 
 data_train_opt = {}
 data_train_opt['nKnovel'] = nKnovel
@@ -18,15 +18,16 @@ config['data_train_opt'] = data_train_opt
 config['max_num_epochs'] = 6
 
 networks = {}
+
 networks['feat_model'] = {'def_file': 'architectures/DumbFeat.py', 'pretrained': None, 'opt': {'dropout': 0.5},  'optim_params': None }
-net_optim_paramsC = {'optim_type': 'sgd', 'lr': 0.1, 'momentum':0.9, 'weight_decay': 5e-4, 'nesterov': True, 'LUT_lr':[(4, 0.01), (6, 0.001)]}
-pretrainedC = './experiments/imagenet_ResNet10CosineClassifier/classifier_net_epoch100'
-net_optionsC = {'classifier_type': 'cosine', 'weight_generator_type': 'attention_based', 'nKall': 1000, 'nFeat': 512, 'scale_cls': 10, 'scale_att': 30.0}
+net_optim_paramsC = {'optim_type': 'sgd', 'lr': 0.1, 'momentum':0.9, 'weight_decay': 1e-4, 'nesterov': True, 'LUT_lr':[(4, 0.01), (6, 0.001)], 'reg': 'ortho', 'ortho_lambda': 1e-4}
+pretrainedC = './experiments/imagenet_ResNet10CosineClassifier_ortho/classifier_net_epoch100'
+net_optionsC = {'classifier_type': 'cosine', 'weight_generator_type': 'feature_averaging', 'nKall': 1000, 'nFeat': 512, 'scale_cls': 10}
 networks['classifier'] = {'def_file': 'architectures/ClassifierWithFewShotGenerationModule.py', 'pretrained': pretrainedC, 'opt': net_optionsC, 'optim_params': net_optim_paramsC}
 config['networks'] = networks
 
 criterions = {}
-criterions['loss'] = {'ctype':'CrossEntropyLoss', 'opt':None}
+criterions['loss']    = {'ctype':'CrossEntropyLoss', 'opt':None}
 config['criterions'] = criterions
 
 config['data_dir'] = './data/IMAGENET/imagenet_ResNet10CosineClassifier'

@@ -874,10 +874,10 @@ class ImageNet(data.Dataset):
         transforms_list.append(transforms.Normalize(mean=mean_pix, std=std_pix))
         self.transform = transforms.Compose(transforms_list)
 
-        traindir = os.path.join(_IMAGENET_DATASET_DIR, 'train')
-        valdir = os.path.join(_IMAGENET_DATASET_DIR, 'val')
+        traindir = os.path.join(_IMAGENET_DATASET_DIR, 'train256x256')
+        valdir = os.path.join(_IMAGENET_DATASET_DIR, 'val256x256')
         self.data = datasets.ImageFolder(
-            traindir if split=='train' else valdir, self.transform)
+            traindir if split=='train256x256' else valdir, self.transform)
         self.labels = [item[1] for item in self.data.imgs]
 
     def __getitem__(self, index):
