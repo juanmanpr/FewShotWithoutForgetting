@@ -204,12 +204,18 @@ class ImageNetLowShotExperiments(FewShot):
         print(W)
         print(W.size(), print(nKall))
         
+        d_list = []
         for r1 in W:
             for r2 in W:
                 d = torch.dot(r1,r2).item()
-                print(d)
+                d_list.append(d.item())
                 
-        return 0
+        d_list = np.array(d_list)
+        
+        import matplotlib.pyplot as plt
+        plt.hist(d_list, bins='auto')  # arguments are passed to np.histogram
+        plt.title('Dot product histogram')
+        plt.show()
 
         top1, top1_novel, top1_base, top1_prior, top1_hm = None, None, None, None, None
         top5, top5_novel, top5_base, top5_prior, top5_hm = None, None, None, None, None
